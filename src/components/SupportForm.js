@@ -80,7 +80,13 @@ export default function SupportForm() {
     setLoading(true);
 
     try {
+      // Generate client-side UUID so we don't need a SELECT query back from Postgres
+      const ticketId = typeof crypto !== 'undefined' && crypto.randomUUID 
+        ? crypto.randomUUID() 
+        : 'ticket_' + Math.random().toString(36).substring(2, 11);
+
       const payload = {
+        id: ticketId,
         name: formData.name.trim(),
         email: formData.email.trim().toLowerCase(),
         category: formData.category,
@@ -92,17 +98,15 @@ export default function SupportForm() {
         priority: formData.category === 'signup_issue' || formData.category === 'bug' ? 'high' : 'normal'
       };
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('support_tickets')
-        .insert([payload])
-        .select('id, created_at')
-        .single();
+        .insert([payload]);
 
       if (error) {
         throw error;
       }
 
-      setSubmittedTicket(data || { id: 'submitted' });
+      setSubmittedTicket({ id: ticketId });
     } catch (err) {
       console.error('Error submitting support ticket:', err);
       setErrorMessage(
